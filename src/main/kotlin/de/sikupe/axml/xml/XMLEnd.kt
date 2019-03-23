@@ -1,8 +1,8 @@
 package de.sikupe.axml.xml
 
-import de.sikupe.axml.BinaryHelper
 import de.sikupe.axml.Bytable
 import de.sikupe.axml.WORD_SIZE
+import de.sikupe.axml.helper.writeInt
 import fr.xgouchet.axml.CompressedXmlParser
 import java.io.ByteArrayOutputStream
 
@@ -20,22 +20,22 @@ data class XMLEnd(
         val baos = ByteArrayOutputStream()
 
         // Start Tag
-        baos.write(BinaryHelper.convertEndianess(CompressedXmlParser.WORD_END_TAG))
+        baos.writeInt(CompressedXmlParser.WORD_END_TAG)
 
         // Chunk size
-        baos.write(BinaryHelper.convertEndianess(size()))
+        baos.writeInt(size())
 
         // Line
-        baos.write(BinaryHelper.convertEndianess(mLine))
+        baos.writeInt(mLine)
 
         // XML Comment
-        baos.write(BinaryHelper.convertEndianess(mXMLComment))
+        baos.writeInt(mXMLComment)
 
         // XMLNamespace
-        baos.write(BinaryHelper.convertEndianess(mNamespaceUriIndex))
+        baos.writeInt(mNamespaceUriIndex)
 
         // Name
-        baos.write(BinaryHelper.convertEndianess(mNameIndex))
+        baos.writeInt(mNameIndex)
 
         return baos.toByteArray()
     }

@@ -1,7 +1,7 @@
 package de.sikupe.axml
 
 abstract class Table<T>: Bytable {
-    protected val mSet = HashSet<T>()
+    protected val mSet = mutableListOf<T>()
     val mSize: Int
         get() = mSet.size
 
@@ -10,11 +10,17 @@ abstract class Table<T>: Bytable {
      * @param element element to save
      * @return Returns the ID within the table of the added element
      */
-    fun add(element: T): Int {
-        return if (mSet.add(element)) {
-            mSize - 1
-        } else {
+    fun addOriginal(element: T): Int {
+        mSet.add(element)
+        return mSize - 1
+    }
+
+    fun addAdditional(element: T): Int {
+        return if(mSet.contains(element)) {
             mSet.indexOf(element)
+        } else {
+            mSet.add(element)
+            mSize - 1
         }
     }
 }

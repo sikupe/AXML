@@ -1,6 +1,10 @@
 package de.sikupe.axml
 
+import de.sikupe.axml.helper.replace
+import de.sikupe.axml.helper.writeInt
+import de.sikupe.axml.helper.writeShort
 import java.io.ByteArrayOutputStream
+import java.nio.charset.Charset
 import kotlin.experimental.and
 
 class StringTable(private val mStyleCount: Int , private val mStyleData: ByteArray ) : Table<String>() {
@@ -19,54 +23,58 @@ class StringTable(private val mStyleCount: Int , private val mStyleData: ByteArr
         val bos = ByteArrayOutputStream()
 
         // Start tag
-        bos.write(BinaryHelper.convertEndianess(STRING_TABLE_START_TAG))
-        // Chunk size
-        bos.write(BinaryHelper.convertEndianess(size()))
+        bos.writeInt(STRING_TABLE_START_TAG)
+        // Chunk size placeholder
+        bos.writeInt(0)
         // String count
-        bos.write(BinaryHelper.convertEndianess(mSize))
+        bos.writeInt(mSize)
         // Style count
-        bos.write(BinaryHelper.convertEndianess(mStyleCount))
+        bos.writeInt(mStyleCount)
         // Flags
-        bos.write(BinaryHelper.convertEndianess(mFlags))
+        bos.writeInt(mFlags)
         // Offset to string data
         val offsetToStringData = mChunkHeaderSize + mStringOffsetTableSize
-        bos.write(BinaryHelper.convertEndianess(offsetToStringData))
+        bos.writeInt(offsetToStringData)
         // Offset to style data
-        val offsetToStyleData = offsetToStringData + mStringByteCount
-        bos.write(BinaryHelper.convertEndianess(offsetToStyleData))
+        val offsetToStyleData = if(mStyleCount > 0) {
+            offsetToStringData + mStringByteCount
+        } else {
+            0
+        }
+        bos.writeInt(offsetToStyleData)
 
         // Write String offsets
         var previosStringsSize = 0
         mSet.forEach {
-            bos.write(offsetToStringData + previosStringsSize)
+            bos.writeInt(previosStringsSize)
             previosStringsSize += getRelevantStringSize(it)
         }
 
         // Write String data
         mSet.forEach {
-            // String length
-            val stringLengthAsByteArray = ByteArray(2)
-            val x = it.length.toShort()
-            stringLengthAsByteArray[0] = (x and 0xff).toByte()
-            stringLengthAsByteArray[1] = (x.toInt() shr 8 and 0xff).toByte()
-
-            bos.write(BinaryHelper.convertEndianessShort(stringLengthAsByteArray))
-
-            // String data
-            bos.write(BinaryHelper.convertEndianessShort(it.toByteArray()))
+            bos.write(BinaryHelper.toBinaryStringTableString(it))
         }
 
         // Write Style data
         bos.write(mStyleData)
 
-        return bos.toByteArray()
+        // Writing real chunk size
+        val byteArray = bos.toByteArray()
+        val chunkSize = ByteArrayOutputStream().apply { writeInt(byteArray.size) }.toByteArray()
+        byteArray.replace(1 * WORD_SIZE, chunkSize)
+
+        return byteArray
+    }
+
+    fun get(index: Int): String {
+        return mSet.elementAt(index)
     }
 
     override fun size(): Int {
-        return mChunkHeaderSize + mStringOffsetTableSize + mStringByteCount + mStyleData.size
+        return toByteArray().size
     }
 
     private fun getRelevantStringSize(string: String): Int {
-        return string.toByteArray().size + 2
+        return string.toByteArray(Charset.forName("UTF-16")).size + 2
     }
 }

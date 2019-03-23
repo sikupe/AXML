@@ -1,7 +1,7 @@
 package de.sikupe.axml.xml
 
-import de.sikupe.axml.BinaryHelper
 import de.sikupe.axml.WORD_SIZE
+import de.sikupe.axml.helper.writeInt
 import fr.xgouchet.axml.CompressedXmlParser
 import java.io.ByteArrayOutputStream
 
@@ -20,25 +20,25 @@ class XMLTextNode(
         val baos = ByteArrayOutputStream()
 
         // Start Tag
-        baos.write(BinaryHelper.convertEndianess(CompressedXmlParser.WORD_TEXT))
+        baos.writeInt(CompressedXmlParser.WORD_TEXT)
 
         // Chunk size
-        baos.write(BinaryHelper.convertEndianess(size()))
+        baos.writeInt(size())
 
         // Line
-        baos.write(BinaryHelper.convertEndianess(mLine))
+        baos.writeInt(mLine)
 
         // XML Comment
-        baos.write(BinaryHelper.convertEndianess(mXMLComment))
+        baos.writeInt(mXMLComment)
 
         // String
-        baos.write(BinaryHelper.convertEndianess(mStringIndex))
+        baos.writeInt(mStringIndex)
 
         // Fifth Word (don't know, always 8)
-        baos.write(BinaryHelper.convertEndianess(mFifthWord))
+        baos.writeInt(mFifthWord)
 
         // Fifth Word (don't know, always 0)
-        baos.write(BinaryHelper.convertEndianess(mSixthWord))
+        baos.writeInt(mSixthWord)
         return baos.toByteArray()
     }
 

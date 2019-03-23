@@ -22,7 +22,7 @@ class CompressedXmlParser {
     private val mNamespaces: MutableMap<String, String?>
     private lateinit var mData: ByteArray
 
-    private lateinit var mStringsTable: Array<String>
+    private lateinit var mStringsTable: StringTable
     private lateinit var mResourcesIds: IntArray
     private var mStringsCount: Int = 0
     private var mStylesCount: Int = 0
@@ -121,7 +121,7 @@ class CompressedXmlParser {
      *
      *  * 0th word : 0x1c0001
      *  * 1st word : chunk size
-     *  * 2nd word : number of string in the string table
+     *  * 2nd word : number of string in the smtring table
      *  * 3rd word : number of styles in the string table
      *  * 4th word : flags - sorted/utf8 flag (0)
      *  * 5th word : Offset to String data
@@ -136,17 +136,29 @@ class CompressedXmlParser {
         val strOffset = mParserOffset + getLEWord(mParserOffset + 5 * WORD_SIZE)
         val styleOffset = getLEWord(mParserOffset + 6 * WORD_SIZE)
 
-        val stringTable = StringTable(mStylesCount, sliceData((mParserOffset + styleOffset), (mParserOffset + chunk)))
+        val styleData = if(mStylesCount != 0) {
+            sliceData((mParserOffset + styleOffset), (mParserOffset + chunk))
+        } else {
+            ByteArray(0)
+        }
+
+        val stringTable = StringTable(mStylesCount, styleData)
 
         var offset: Int
         for (i in 0 until mStringsCount) {
-            offset = strOffset + getLEWord(mParserOffset + (i + 7) * WORD_SIZE)
-            stringTable.add(getStringFromStringTable(offset))
+            offset = getStringOffset(strOffset, i)
+            val string = getStringFromStringTable(offset)
+            stringTable.addOriginal(string)
         }
 
+        mStringsTable = stringTable
         mListener.setStringTable(stringTable)
 
         mParserOffset += chunk
+    }
+
+    private fun getStringOffset(stringOffset: Int, index: Int): Int {
+        return stringOffset + getLEWord(mParserOffset + (index + 7) * WORD_SIZE)
     }
 
     /**
@@ -197,12 +209,12 @@ class CompressedXmlParser {
      *
      */
     private fun parseNamespace(start: Boolean) {
-        val chunkSize = getLEWord(mParserOffset + 1 + WORD_SIZE)
+        val size = 6 * WORD_SIZE
 
         if (start) {
-            mListener.startNamespace(sliceData(chunkSize))
+            mListener.startNamespace(sliceData(size))
         } else {
-            mListener.endNamespace(sliceData(chunkSize))
+            mListener.endNamespace(sliceData(size))
         }
 
         // Offset to first tag
@@ -237,7 +249,7 @@ class CompressedXmlParser {
 
         val attrs = mutableListOf<XMLAttribute>() // NOPMD
         for (a in 0 until attrCount) {
-            attrs[a] = parseAttribute() // NOPMD
+            attrs.add(parseAttribute()) // NOPMD
 
             // offset to next attribute or tag
             mParserOffset += 5 * 4
@@ -264,7 +276,7 @@ class CompressedXmlParser {
         val attrValueIdx = getLEWord(mParserOffset + 2 * WORD_SIZE)
         val attrType = getLEWord(mParserOffset + 3 * WORD_SIZE)
         val attrData = getLEWord(mParserOffset + 4 * WORD_SIZE)
-        val name = getString(attrNameIdx)!!
+        val name = mStringsTable.get(attrNameIdx)
 
         return XMLAttribute(name, attrNSIdx, attrNameIdx, attrValueIdx, attrType, attrData)
     }
@@ -321,21 +333,6 @@ class CompressedXmlParser {
     }
 
     /**
-     * @param index the index of the string in the StringIndexTable
-     * @return the string
-     */
-    private fun getString(index: Int): String? {
-        val res: String?
-        if (index in 0..(mStringsCount - 1)) {
-            res = mStringsTable[index]
-        } else {
-            res = null // NOPMD
-        }
-
-        return res
-    }
-
-    /**
      * @param offset offset of the beginning of the string inside the de.sikupe.axml.StringTable
      * (and not the whole data array)
      * @return the String
@@ -357,7 +354,8 @@ class CompressedXmlParser {
             }
 
         }
-        return String(chars)
+        val string = String(chars)
+        return string
     }
 
     /**
@@ -387,7 +385,7 @@ class CompressedXmlParser {
         val res: String?
 
         when (type) {
-            TYPE_STRING -> res = getString(data)
+            TYPE_STRING -> res = mStringsTable.get(data)
             TYPE_DIMEN -> res = Integer.toString(data shr 8) + DIMEN[data and 0xFF]
             TYPE_FRACTION -> {
                 val fracValue = data.toDouble() / 0x7FFFFFFF.toDouble()

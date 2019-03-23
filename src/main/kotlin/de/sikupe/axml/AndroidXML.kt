@@ -1,6 +1,6 @@
 package de.sikupe.axml
 
-import de.sikupe.axml.BinaryHelper.convertEndianess
+import de.sikupe.axml.helper.writeInt
 import de.sikupe.axml.xml.XMLWrapper
 import fr.xgouchet.axml.CompressedXmlParser
 import java.io.ByteArrayOutputStream
@@ -10,8 +10,8 @@ class AndroidXML(private val mStringTable: StringTable, private val mResourceTab
         val buffer = ByteArrayOutputStream()
 
         // Write mDocument
-        buffer.write(convertEndianess(CompressedXmlParser.WORD_START_DOCUMENT))
-        buffer.write(BinaryHelper.convertEndianess(size()))
+        buffer.writeInt(CompressedXmlParser.WORD_START_DOCUMENT)
+        buffer.writeInt(size())
 
         // Write string table
         buffer.write(mStringTable.toByteArray())

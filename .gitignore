@@ -23,3 +23,9 @@ local.properties
 
 # parse local
 parse_local/
+
+# test resources
+src/test/resources
+
+# Output
+out/

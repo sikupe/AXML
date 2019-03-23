@@ -1,9 +1,8 @@
 package de.sikupe.axml.xml
 
-import de.sikupe.axml.BinaryHelper.convertEndianess
-import de.sikupe.axml.BinaryHelper.toLEShort
 import de.sikupe.axml.Bytable
 import de.sikupe.axml.WORD_SIZE
+import de.sikupe.axml.helper.writeInt
 import fr.xgouchet.axml.CompressedXmlParser
 import java.io.ByteArrayOutputStream
 
@@ -32,31 +31,31 @@ data class XMLStart(
         val baos = ByteArrayOutputStream()
 
         // Start Tag
-        baos.write(convertEndianess(CompressedXmlParser.WORD_START_TAG))
+        baos.writeInt(CompressedXmlParser.WORD_START_TAG)
 
         // Chunk Size
-        baos.write(convertEndianess(size()))
+        baos.writeInt(size())
 
         // Line appearence
-        baos.write(convertEndianess(mLine))
+        baos.writeInt(mLine)
 
         // XML comment
-        baos.write(convertEndianess(mXMLCommentIndex))
+        baos.writeInt(mXMLCommentIndex)
 
         // XMLNamespace Uri
-        baos.write(convertEndianess(mNamespaceUriIndex))
+        baos.writeInt(mNamespaceUriIndex)
 
         // Tag namme
-        baos.write(convertEndianess(mTagNameIndex))
+        baos.writeInt(mTagNameIndex)
 
         // Size of Attributes
-        baos.write(convertEndianess(mAttributesByteSize))
+        baos.writeInt(mAttributesByteSize)
 
         // Number of attributes
-        baos.write(toLEShort(mAttributes.size.toShort()))
+        baos.writeInt((mAttributes.size))
 
         // Id attribute indes
-        baos.write(convertEndianess(mIdAttributeIndex))
+        baos.writeInt(mIdAttributeIndex)
 
         // Write attributes
         mAttributes.forEach {

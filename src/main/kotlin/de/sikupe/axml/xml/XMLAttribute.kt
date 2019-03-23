@@ -1,8 +1,8 @@
 package de.sikupe.axml.xml
 
-import de.sikupe.axml.BinaryHelper
 import de.sikupe.axml.Bytable
 import de.sikupe.axml.WORD_SIZE
+import de.sikupe.axml.helper.writeInt
 import java.io.ByteArrayOutputStream
 
 data class XMLAttribute(
@@ -21,19 +21,19 @@ data class XMLAttribute(
         val baos = ByteArrayOutputStream()
 
         // XMLNamespace Uri
-        baos.write(BinaryHelper.convertEndianess(mNamespaceUriIndex))
+        baos.writeInt(mNamespaceUriIndex)
 
         // Name index
-        baos.write(BinaryHelper.convertEndianess(mNameIndex))
+        baos.writeInt(mNameIndex)
 
         // Value index
-        baos.write(BinaryHelper.convertEndianess(mValue))
+        baos.writeInt(mValue)
 
         // Attribute type
-        baos.write(BinaryHelper.convertEndianess(mValueType))
+        baos.writeInt(mValueType)
 
         // Resource Id
-        baos.write(BinaryHelper.convertEndianess(mResourceId))
+        baos.writeInt(mResourceId)
 
         return baos.toByteArray()
     }

@@ -1,6 +1,8 @@
 package de.sikupe.axml
 
-import java.lang.IllegalArgumentException
+import de.sikupe.axml.helper.writeShort
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
 
 object BinaryHelper {
 
@@ -10,46 +12,48 @@ object BinaryHelper {
      * @return Your word in the other endianess
      */
     fun convertEndianess(word: Int): Int {
-        return (word shl 24 and -0x1000000
-                or (word shl 16 and 0x00ff0000)
-                or (word shl 8 and 0x0000ff00)
-                or (word shl 0 and 0x000000ff))
+        return Integer.reverseBytes(word)
     }
 
     fun convertEndianess(byteArray: ByteArray, offset: Int): Int {
-        return (byteArray[offset + 3].toInt() shl 24 and -0x1000000
-                or (byteArray[offset + 2].toInt() shl 16 and 0x00ff0000)
-                or (byteArray[offset + 1].toInt() shl 8 and 0x0000ff00)
-                or (byteArray[offset + 0].toInt() shl 0 and 0x000000ff))
+        return convertEndianess(ByteBuffer.wrap(byteArray, offset, 4).int)
     }
 
     fun getLEShort(byteArray: ByteArray, offset: Int): Short {
         return (byteArray[offset + 1].toInt() shl 8 and 0xff00 or (byteArray[offset + 0].toInt() shl 0 and 0x00ff)).toShort()
     }
 
+    /**
+     * Creates half a word with a LE short value (2 byte)
+     * @param short big endian value to convert
+     * @return 2-byte byte array with a LE short representation
+     */
     fun toLEShort(short: Short): ByteArray {
-        val array = ByteArray(4)
+        val array = ByteArray(2)
         array[0] = short.toByte()
         array[1] = (short.toInt() shr 8).toByte()
         return array
     }
 
     /**
-     * Converts the passed byte array to the other endianess by two bytes (shorts/chars)
+     * Converts a string to its binary representation in the data part of the string table
+     * 0x00: length as LE short
+     * 0x02: string as utf-16-le encoded byte array without first 2 bytes
+     * 0xEND: 2 zero bytes
+     * @param string String to convert
+     * @return Kind of UTF-16 formatted string for the data part of the string table (see above)
      */
-    fun convertEndianessShort(byteArray: ByteArray): ByteArray {
-        if (byteArray.size % 2 != 0) {
-            throw IllegalArgumentException("The byte array has to have an even count of bytes")
-        }
-        val out = ByteArray(byteArray.size)
-        for (i in 0..byteArray.size / 2) {
-            out[i * 2] = byteArray[i * 2 + 1]
-            out[i * 2 + 1] = byteArray[i * 2]
-        }
-        return out
-    }
+    fun toBinaryStringTableString(string: String): ByteArray {
+        val bos = ByteArrayOutputStream()
+        // String length
+        bos.writeShort(string.length.toShort())
 
-    fun getFirstIntConverted(byteArray: ByteArray): Int {
-        return convertEndianess(byteArray, 0)
+        // String data
+        val stringData = string.toByteArray(Charsets.UTF_16LE)
+        bos.write(stringData)
+
+        // String end
+        bos.write(byteArrayOf(0.toByte(), 0.toByte()))
+        return bos.toByteArray()
     }
 }

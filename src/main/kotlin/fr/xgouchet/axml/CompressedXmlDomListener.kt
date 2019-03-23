@@ -8,15 +8,16 @@ import de.sikupe.axml.xml.*
 import javax.xml.parsers.ParserConfigurationException
 import java.util.Stack
 
-class CompressedXmlDomListener
+open class CompressedXmlDomListener
 /**
  * @throws ParserConfigurationException if a DocumentBuilder can't be created
  */
 @Throws(ParserConfigurationException::class)
 constructor() : CompressedXmlParserListener {
-    private val mStack: Stack<XMLWrapper>
+    private val mStack: Stack<XMLWrapper> = Stack()
     private lateinit var mXMLRoot: XMLWrapper
-    private lateinit var mStringTable: StringTable
+    lateinit var mStringTable: StringTable
+        private set
     private lateinit var mResourceTable: ResourceTable
 
     /**
@@ -24,9 +25,6 @@ constructor() : CompressedXmlParserListener {
      */
     lateinit var mDocument: AndroidXML
 
-    init {
-        mStack = Stack()
-    }
     override fun startDocument() {
     }
 
@@ -43,20 +41,20 @@ constructor() : CompressedXmlParserListener {
     }
 
     private fun pushToStack(xmlWrapper: XMLWrapper) {
-        if(!this::mXMLRoot.isInitialized) {
+        if (!this::mXMLRoot.isInitialized) {
             mXMLRoot = xmlWrapper
         }
         mStack.push(xmlWrapper)
     }
 
-    override fun startElement(line: Int, comment: Int, namespace: Int, tag: Int, attributes: List<XMLAttribute>){
+    override fun startElement(line: Int, comment: Int, namespace: Int, tag: Int, attributes: List<XMLAttribute>) {
         val element = XMLNode(XMLStart(line, comment, namespace, tag, attributes))
         mStack.peek().addChild(element)
         mStack.push(element)
     }
 
     override fun endElement(line: Int, comment: Int, namepaceUriIndex: Int, nameIndex: Int) {
-        mStack.pop()
+        (mStack.pop() as XMLNode).mEnd = XMLEnd(line, comment, namepaceUriIndex, nameIndex)
     }
 
     override fun characterData(data: String) {
